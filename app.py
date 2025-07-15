@@ -11,11 +11,10 @@ from gtts import gTTS
 import uuid
 from datetime import datetime, timedelta
 import glob
-import gdown
 
 app = Flask(__name__)
 
-# Global variables
+# Variables globales
 predicted_sentence = ""
 current_sign = ""
 prediction_count = 0
@@ -23,7 +22,7 @@ threshold_frames = 15
 last_prediction = ""
 camera_active = False
 
-# Create static directory for audio files if it doesn't exist
+# Crear directorio estático para archivos de audio si no existe
 AUDIO_DIR = os.path.join('static', 'audio')
 if not os.path.exists(AUDIO_DIR):
     os.makedirs(AUDIO_DIR)
@@ -31,25 +30,33 @@ if not os.path.exists(AUDIO_DIR):
 model_path = "model/asl_model.joblib"
 encoder_path = "model/label_encoder.joblib"
 
-# File IDs from Google Drive (not full URLs!)
-model_file_id = "1oZeBgnRUqLYe5IaYG6NIokCEuqz07Ru2"
-encoder_file_id = "13oBSsI927KltAI7z0bpz3hgCTrUAQap-"
+# Verificar que los archivos del modelo existen
+if not os.path.exists(model_path) or not os.path.exists(encoder_path):
+    print("❌ Error: Archivos del modelo no encontrados")
+    print(f"Buscando: {model_path}")
+    print(f"Buscando: {encoder_path}")
+    print("\n🔧 Para entrenar tu propio modelo:")
+    print("1. Ejecuta: python collect_data.py (para recolectar datos)")
+    print("2. Ejecuta: python train_model.py (para entrenar el modelo)")
+    print("3. Reinicia la aplicación")
+    model_loaded = False
+    model = None
+    le = None
+else:
+    # Cargar el modelo y el codificador
+    try:
+        model = joblib.load(model_path)
+        le = joblib.load(encoder_path)
+        model_loaded = True
+        print("✅ Modelo cargado exitosamente")
+        print(f"📊 Clases disponibles: {list(le.classes_)}")
+    except Exception as e:
+        print(f"❌ Error cargando el modelo: {e}")
+        model_loaded = False
+        model = None
+        le = None
 
-# Download if missing
-if not os.path.exists(model_path):
-    print("Downloading ASL model...")
-    gdown.download(f"https://drive.google.com/uc?id={model_file_id}", model_path, quiet=False)
-
-if not os.path.exists(encoder_path):
-    print("Downloading LabelEncoder...")
-    gdown.download(f"https://drive.google.com/uc?id={encoder_file_id}", encoder_path, quiet=False)
-
-# Load the model and encoder
-model = joblib.load(model_path)
-le = joblib.load(encoder_path)
-model_loaded = True  # Flag to indicate model is loaded
-
-# Setup MediaPipe
+# Configurar MediaPipe
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(
@@ -63,10 +70,10 @@ class VideoCamera:
     def __init__(self):
         self.video = cv2.VideoCapture(0)
         if not self.video.isOpened():
-            raise Exception("Could not open camera")
+            raise Exception("No se pudo abrir la cámara")
         self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        self.video.set(cv2.CAP_PROP_FPS, 30)  # Set FPS
+        self.video.set(cv2.CAP_PROP_FPS, 30)  # Establecer FPS
         
     def __del__(self):
         if hasattr(self, 'video') and self.video:
@@ -80,43 +87,43 @@ class VideoCamera:
             if not ret:
                 return None
                 
-            # Flip image for natural feel
+            # Voltear imagen para sensación natural
             frame = cv2.flip(frame, 1)
             h, w, _ = frame.shape
             
-            # Convert to RGB for MediaPipe
+            # Convertir a RGB para MediaPipe
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = hands.process(rgb)
             
             if result.multi_hand_landmarks and model_loaded:
                 for hand_landmarks in result.multi_hand_landmarks:
-                    # Draw landmarks
+                    # Dibujar puntos de referencia
                     mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
                     
                     try:
-                        # Extract 63 features: x, y, z for each landmark
+                        # Extraer 63 características: x, y, z para cada punto
                         features = []
                         for lm in hand_landmarks.landmark:
                             features.extend([lm.x, lm.y, lm.z])
                         
-                        # Convert to numpy and reshape for model
+                        # Convertir a numpy y reestructurar para el modelo
                         x_input = np.array(features).reshape(1, -1)
                         
-                        # Predict
+                        # Predecir
                         y_pred = model.predict(x_input)
                         label = le.inverse_transform(y_pred)[0]
                         
-                        # Show current prediction exactly like original code
+                        # Mostrar la predicción actual igual que el código original
                         current_sign = label
                         
-                        # Stability check over frames
+                        # Comprobación de estabilidad en varios cuadros
                         if label == last_prediction:
                             prediction_count += 1
                         else:
                             prediction_count = 0
                             last_prediction = label
                         
-                        # If stable for enough frames, update sentence
+                        # Si es estable por suficientes cuadros, actualizar la oración
                         if prediction_count == threshold_frames:
                             if label == "space":
                                 predicted_sentence += " "
@@ -124,31 +131,31 @@ class VideoCamera:
                                 predicted_sentence = predicted_sentence[:-1]
                             elif label != "nothing":
                                 predicted_sentence += label
-                            prediction_count = 0  # reset for next sign
+                            prediction_count = 0  # reiniciar para el siguiente signo
                     except Exception as e:
-                        print(f"Error during prediction: {e}")
+                        print(f"Error durante la predicción: {e}")
                         current_sign = "error"
             else:
                 current_sign = "nothing"
             
-            # Add text overlay (like original OpenCV code)
+            # Añadir texto sobre la imagen (como el código original de OpenCV)
             cv2.rectangle(frame, (10, 10), (630, 100), (0, 0, 0), -1)
-            cv2.putText(frame, f"Sign: {current_sign}", (20, 40), 
+            cv2.putText(frame, f"Signo: {current_sign}", (20, 40), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-            cv2.putText(frame, f"Sentence: {predicted_sentence}", (20, 80), 
+            cv2.putText(frame, f"Oración: {predicted_sentence}", (20, 80), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             
-            # Encode frame
+            # Codificar el cuadro
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
             
             return frame
             
         except Exception as e:
-            print(f"Error in get_frame: {e}")
-            # Return a black frame with error message
+            print(f"Error en get_frame: {e}")
+            # Retornar un cuadro negro con mensaje de error
             error_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-            cv2.putText(error_frame, "Camera Error", (250, 240), 
+            cv2.putText(error_frame, "Error de cámara", (250, 240), 
                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             ret, buffer = cv2.imencode('.jpg', error_frame)
             return buffer.tobytes()
@@ -164,13 +171,13 @@ def gen_frames():
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
             time.sleep(1/30)  # 30 FPS
     except Exception as e:
-        print(f"Error in gen_frames: {e}")
+        print(f"Error en gen_frames: {e}")
     finally:
         if camera:
             del camera
 
 def cleanup_old_audio_files():
-    """Remove audio files older than 1 hour"""
+    """Eliminar archivos de audio con más de 1 hora de antigüedad"""
     try:
         cutoff_time = datetime.now() - timedelta(hours=1)
         audio_files = glob.glob(os.path.join(AUDIO_DIR, "*.mp3"))
@@ -179,30 +186,30 @@ def cleanup_old_audio_files():
             file_time = datetime.fromtimestamp(os.path.getctime(file_path))
             if file_time < cutoff_time:
                 os.remove(file_path)
-                print(f"Removed old audio file: {file_path}")
+                print(f"Archivo de audio antiguo eliminado: {file_path}")
     except Exception as e:
-        print(f"Error cleaning up audio files: {e}")
+        print(f"Error limpiando archivos de audio: {e}")
 
 def generate_audio_file(text):
-    """Generate MP3 file from text using gTTS"""
+    """Generar archivo MP3 a partir de texto usando gTTS"""
     try:
         if not text or text.strip() == "":
             return None
             
-        # Clean up old files first
+        # Limpiar archivos antiguos primero
         cleanup_old_audio_files()
         
-        # Generate unique filename
+        # Generar nombre de archivo único
         filename = f"speech_{uuid.uuid4().hex[:8]}.mp3"
         filepath = os.path.join(AUDIO_DIR, filename)
         
-        # Generate speech
+        # Generar voz
         tts = gTTS(text=text, lang='es', slow=False)  # Cambiado a español
         tts.save(filepath)
         
         return filename
     except Exception as e:
-        print(f"Error generating audio: {e}")
+        print(f"Error generando audio: {e}")
         return None
 
 @app.route('/')
@@ -217,13 +224,13 @@ def video_feed():
 def start_camera():
     global camera_active
     camera_active = True
-    return jsonify({'status': 'Camera started'})
+    return jsonify({'status': 'Cámara iniciada'})
 
 @app.route('/stop_camera', methods=['POST'])
 def stop_camera():
     global camera_active
     camera_active = False
-    return jsonify({'status': 'Camera stopped'})
+    return jsonify({'status': 'Cámara detenida'})
 
 @app.route('/get_sentence', methods=['GET'])
 def get_sentence():
@@ -238,7 +245,7 @@ def get_sentence():
 def clear_sentence():
     global predicted_sentence
     predicted_sentence = ""
-    return jsonify({'status': 'Sentence cleared'})
+    return jsonify({'status': 'Oración borrada'})
 
 @app.route('/speak_sentence', methods=['POST'])
 def speak_sentence():
@@ -247,10 +254,10 @@ def speak_sentence():
     if not predicted_sentence or predicted_sentence.strip() == "":
         return jsonify({
             'status': 'error',
-            'message': 'No sentence to speak'
+            'message': 'No hay oración para reproducir'
         }), 400
     
-    # Generate audio file
+    # Generar archivo de audio
     audio_filename = generate_audio_file(predicted_sentence)
     
     if audio_filename:
@@ -258,17 +265,17 @@ def speak_sentence():
             'status': 'success',
             'sentence': predicted_sentence,
             'audio_url': f'/static/audio/{audio_filename}',
-            'message': 'Audio generated successfully'
+            'message': 'Audio generado exitosamente'
         })
     else:
         return jsonify({
             'status': 'error',
-            'message': 'Failed to generate audio'
+            'message': 'No se pudo generar el audio'
         }), 500
 
 @app.route('/static/audio/<filename>')
 def serve_audio(filename):
-    """Serve audio files"""
+    """Servir archivos de audio"""
     return send_from_directory(AUDIO_DIR, filename)
 
 if __name__ == '__main__':

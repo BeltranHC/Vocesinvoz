@@ -1,4 +1,42 @@
+# Entornos virtuales
 venv/
-model/
+env/
+
+# Archivos de modelo entrenados (opcional - descomentar si quieres versionar)
+# model/*.joblib
+
+# Screenshots
 screenshots/
-static/
+
+# Archivos de audio generados
+static/audio/*.mp3
+
+# Datos de entrenamiento (muy pesados)
+data/*/
+!data/README.md
+
+# Reportes generados
+reports/
+!reports/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+model/

@@ -5,4 +5,7 @@ numpy
 scikit-learn
 joblib
 gtts
-gdown
+matplotlib
+seaborn
+tqdm
+pandas

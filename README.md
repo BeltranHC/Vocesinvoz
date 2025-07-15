@@ -62,7 +62,36 @@ cd signspeak
 pip install -r requirements.txt
 ```
 
-### 3. Ejecuta la Aplicación
+### 3. Prepara tu Modelo
+
+**Opción A: Entrenar tu propio modelo (Recomendado)**
+
+```bash
+# Paso 1: Recolectar datos con la cámara
+python collect_data.py
+
+# Paso 2: Entrenar el modelo
+python train_model.py
+
+# Paso 3: Evaluar el modelo (opcional)
+python evaluate_model.py
+```
+
+**Opción B: Usar imágenes existentes**
+
+1. Crea la estructura de carpetas en `data/`:
+```
+data/
+├── A/
+├── B/
+├── C/
+└── ...
+```
+
+2. Coloca tus imágenes en las carpetas correspondientes
+3. Ejecuta `python train_model.py`
+
+### 4. Ejecuta la Aplicación
 
 ```bash
 python app.py
@@ -92,11 +121,44 @@ El modelo se guarda como `asl_model.joblib` junto con `label_encoder.joblib`. Am
 
 ## 📦 Archivos del Modelo
 
-El modelo (`asl_model.joblib`) y el codificador (`label_encoder.joblib`) se descargarán automáticamente desde Google Drive en la primera ejecución.
+Los archivos del modelo (`asl_model.joblib`) y el codificador (`label_encoder.joblib`) deben estar en la carpeta `model/`.
 
-> Esto evita que el repositorio se llene de archivos binarios grandes.
+### 🔧 Entrenar tu Propio Modelo
 
-Puedes reemplazar manualmente el modelo dentro de la carpeta `model/` más adelante.
+Este proyecto incluye herramientas completas para entrenar tu propio modelo:
+
+1. **Recolección de Datos**: `collect_data.py`
+   - Interfaz interactiva para capturar imágenes con la cámara
+   - Detección automática de manos con MediaPipe
+   - Organización automática de datos por clases
+
+2. **Entrenamiento**: `train_model.py`
+   - Extracción de características con MediaPipe
+   - Entrenamiento con RandomForestClassifier
+   - Generación de reportes y métricas detalladas
+
+3. **Evaluación**: `evaluate_model.py`
+   - Evaluación de modelos existentes
+   - Comparación entre diferentes modelos
+   - Pruebas en tiempo real con imágenes específicas
+
+### 📊 Estructura de Datos
+
+```
+data/
+├── A/
+│   ├── A_0001.jpg
+│   ├── A_0002.jpg
+│   └── ...
+├── B/
+├── C/
+├── ...
+├── space/
+├── del/
+└── nothing/
+```
+
+> **Recomendación**: Mínimo 100 imágenes por clase para obtener buenos resultados.
 
 ---
 
@@ -106,9 +168,13 @@ Puedes reemplazar manualmente el modelo dentro de la carpeta `model/` más adela
 - `opencv-python`
 - `mediapipe`
 - `numpy`
+- `scikit-learn`
 - `joblib`
-- `gdown`
-- `gTTS`
+- `gtts`
+- `matplotlib`
+- `seaborn`
+- `tqdm`
+- `pandas`
 
 Instala con:
 
