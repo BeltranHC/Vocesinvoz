@@ -52,7 +52,7 @@ project/
 ### 1. Clona el Repositorio
 
 ```bash
-git clone https://github.com/your-username/signspeak.git
+git clone https://github.com/BeltranHC/Vocesinvoz.git
 cd signspeak
 ```
 
@@ -85,10 +85,6 @@ El modelo utilizado es un clasificador tradicional entrenado con 63 característ
 
 - Precisión general: **98.47%**
 - Macro Promedio F1-Score: **0.98**
-
-| Ejemplo de Informe de Clasificación |
-|-------------------------------------|
-| ![asl_model_report](screenshots/model_report.png) |
 
 El modelo se guarda como `asl_model.joblib` junto con `label_encoder.joblib`. Ambos se descargan automáticamente vía `gdown` en la primera ejecución de la app.
 
@@ -131,15 +127,10 @@ pip install -r requirements.txt
 
 ---
 
-## 📄 Licencia
-
-Este proyecto está bajo la **Licencia MIT**. Eres libre de usarlo, compartirlo y modificarlo con atribución.
-
----
 
 ## 👤 Autor
 
-**Somya Soneji**  
+**Junior Huaraya**  
 Construido con ❤️ para unir la comunicación entre el mundo Sordo y oyente.
 
 > ¡Siéntete libre de hacer fork, dar estrella ⭐ y compartirlo con otros!
